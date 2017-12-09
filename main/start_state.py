@@ -4,19 +4,19 @@ from pico2d import *
 
 name = "StartState"
 image = None
+logo_image = None
 logo_time = 0.0
 
 
 def enter():
-    global image
-    open_canvas()
+    global logo_image, image
+    open_canvas(800, 500,True)
     image = load_image('kpu_credit.png')
 
 
 def exit():
-    global image
+    global logo_image, image
     del(image)
-    close_canvas()
 
 import title_state
 
@@ -25,8 +25,7 @@ def update():
 
     if (logo_time >1.0):
         logo_time=0
-        game_framework.quit()
-        game_framework.push_state(title_state)
+        game_framework.change_state(title_state)
     delay(0.01)
     logo_time +=0.01
 
@@ -34,7 +33,7 @@ def update():
 
 
 def draw():
-    global image
+    global logo_image, image
     clear_canvas()
     image.draw(400,300)
     update_canvas()

@@ -3,20 +3,20 @@ import main_state
 from pico2d import *
 
 name = "TitleState"
-image = None
-
+logo_image = None
 
 def enter():
-    global image
-    image = load_image('title.png')
+    global logo_image
+    logo_image = load_image('title.png')
 
 
 def exit():
-    global image
-    del(image)
+    global logo_image
+    del(logo_image)
 
 
 def handle_events():
+    global skip
     events = get_events()
     for event in events:
         if event.type is SDL_QUIT:
@@ -31,7 +31,7 @@ def handle_events():
 
 def draw():
     clear_canvas()
-    image.draw(400,300)
+    logo_image.draw(400, 300)
     update_canvas()
 
 def update():

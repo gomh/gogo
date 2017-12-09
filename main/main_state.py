@@ -3,14 +3,13 @@ import title_state
 from pico2d import *
 import random
 
-
 class Yosi:
     def __init__(self):
         ##############################################################
         #       기본값     #
-        self.initDrawX, self.initDrawY = 40, 107
+        self.initDrawX, self.initDrawY = 50, 107
         self.maxJumpHeight = 130
-        self.defaultRunningSpeed = 20
+        self.defaultRunningSpeed = 11
         self.jumpSpeed = 20
         self.maxDashSec = 2
         self.dashPower = 2
@@ -24,9 +23,19 @@ class Yosi:
         self.curRunningSpeed = self.defaultRunningSpeed
         self.curDashSec = 0
         self.frame = 0
-        self.dir = 1.2
+        self.jump_dir = 1.2
+
         self.jumping = False
         self.dash = False
+
+        self.eat_sound = None
+
+        if self.eat_sound == None:
+            self.eat_sound = load_wav('pickup.wav')
+            self.eat_sound.set_volume(32)
+
+    def eat(self, egg):
+        self.eat_sound.play()
 
     def prepare_image(self):
         self.yosi_image = load_image('run_animation_yosi.png')
@@ -43,15 +52,15 @@ class Yosi:
     def update(self, frame_time):
         self.frame = (self.frame + 1) % 7
         self.worldX += self.curRunningSpeed
-        #print("Yosi Position x:",self.worldX, "y:",self.worldY)
+
         if self.jumping == True:
-            self.curDrawY += self.jumpSpeed * self.dir
+            self.curDrawY += self.jumpSpeed * self.jump_dir
             self.worldY = self.curDrawY
             if self.curDrawY > self.initDrawY + self.maxJumpHeight:
-                self.dir = -1
+                self.jump_dir = -1
             elif self.curDrawY < self.initDrawY:
                 self.worldY = self.curDrawY = self.initDrawY
-                self.dir = 1.2
+                self.jump_dir = 1.2
                 self.jumping = False
 
         if self.dash == True:
@@ -65,6 +74,7 @@ class Yosi:
         if self.dash == True:
             self.frame %= 2
             self.dash_image.clip_draw(self.frame * 100, 0, 100, 100, self.curDrawX, self.curDrawY-13)
+
         else:
             self.yosi_image.clip_draw(self.frame * 100, 0, 100, 100, self.curDrawX, self.curDrawY)
 
@@ -73,7 +83,10 @@ class Yosi:
             self.life_image.clip_draw(0, 0, 50, 50, 40 + 60 * i, canvas_h * 0.90)
 
     def get_bb(self):
-        return self.curDrawX - 25, self.curDrawY - 25, self.curDrawX + 25, self.curDrawY + 25
+        if self.dash == True:
+            return self.curDrawX - 25, self.curDrawY - 25, self.curDrawX + 25, self.curDrawY + 10
+        else:
+            return self.curDrawX - 25, self.curDrawY - 25, self.curDrawX + 25, self.curDrawY + 25
 
 class Background:
     def __init__(self):
@@ -83,6 +96,9 @@ class Background:
         self.bush2_image = None
         self.block_image = None
         self.left = 0
+        self.bgm = load_music('football.mp3')
+        self.bgm.set_volume(64)
+        self.bgm.repeat_play()
         ##############################################################
         #       기본값     #
         self.ground_w = 800
@@ -106,7 +122,6 @@ class Background:
 
     def draw(self):
         ground_x = int(self.left % self.ground_image.w)
-        #ground_x = int(self.left)
         bush1_x = int((self.left * 3.5) % self.bush1_image.w)
         bush2_x =int((self.left * 3.0) % self.bush2_image.w)
         sky_x = int((self.left * 1.5) % self.sky_image.w)
@@ -135,6 +150,34 @@ class Background:
     def update(self, frame_time, yosiSpeed):
         self.left = (self.left + frame_time * yosiSpeed)
 
+    def __del__(self):
+        del self.bgm
+
+class Egg:
+    def __init__(self,x):
+        self.image = None
+        #######################################
+        #       기본값     #
+        self.initY = 100
+        #######################################
+        self.initX = x
+        self.curDrawX = self.initX
+        self.curDrawY = self.initY
+        self.available = True
+
+    def prepare_image(self):
+        self.image = load_image('egg.png')
+
+    def update(self):
+        pass
+
+    def draw(self, yosiX):
+        self.curDrawX = self.initX - yosiX
+        self.image.clip_draw(0, 0, 35, 38, self.curDrawX, self.curDrawY)
+
+    def get_bb(self):
+        return self.curDrawX - 16, self.curDrawY - 16, self.curDrawX + 16, self.curDrawY + 16
+
 class Flower:
     def __init__(self,x):
         self.image = None
@@ -154,7 +197,7 @@ class Flower:
     def update(self):
         self.frame = (self.frame + 1) % 2
 
-    def draw(self,yosiX):
+    def draw(self, yosiX):
         self.curDrawX = self.initX - yosiX
         self.image.clip_draw(self.frame*100, 0, 100, 102, self.curDrawX, self.curDrawY)
 
@@ -188,29 +231,23 @@ class Ghost:
         return self.curDrawX - 36, self.curDrawY - 32, self.curDrawX + 36, self.curDrawY + 32
 
 name = "StartState"
-image = None
-Check = False
-Check2 = False
-logo_time = 0.0
-Speed = 1
 
 PauseImage = None
 
 Pause = False
 TTT = False
 frame = 0
-yosi = Yosi()
-background = Background()
+yosi = None
+background = None
 flowerList = []
 ghostList = []
+eggList = []
 
 def enter():
-    global image, PauseImage, flowerList, ghostList
-    open_canvas(800,500)
-    image = load_image('kpu_credit.png')
-    PauseImage = load_image('pause.png')
-    yosi.prepare_image()
-    background.prepare_image()
+    global PauseImage, flowerList, ghostList, eggList, yosi, background
+
+    yosi=Yosi()
+    background = Background()
 
     for i in range(1000):
         if random.random() > 0.4:
@@ -218,15 +255,24 @@ def enter():
         else:
             ghostList.append(Ghost(1500+i*450))
 
+        if random.random() > 0.1:
+            eggList.append(Egg(3000+i*450))
+
+
+    PauseImage = load_image('pause.png')
+    yosi.prepare_image()
+    background.prepare_image()
+
     for flower in flowerList:
         flower.prepare_image()
 
     for ghost in ghostList:
         ghost.prepare_image()
 
+    for egg in eggList:
+        egg.prepare_image()
+
 def exit():
-    global image
-    del(image)
     close_canvas()
 
 def collide(a,b):
@@ -239,13 +285,22 @@ def collide(a,b):
     return True
 
 def update():
-    global logo_time, image, Check, Check2, frame, Speed, Pause, TTT
+    global frame, Pause, TTT, yosi
+    delay(0.05)
 
     if(Pause == False):
         yosi.update(0.1)
+        for egg in eggList:
+            egg.update()
+
+        for egg in eggList:
+            if collide(yosi, egg):
+                eggList.remove(egg)
+                yosi.eat(egg)
+
         background.update(0.1,yosi.curRunningSpeed)
 
-        # 꽃 충돌테스트
+
         for flower in flowerList:
             flower.update()
             if flower.available == True:
@@ -253,7 +308,7 @@ def update():
                     yosi.curLife -= 1
                     flower.available = False
                     print(yosi.worldX + flower.curDrawX, "위치의 꽃과 충돌")
-        # 유령 충돌테스트
+
         for ghost in ghostList:
             ghost.update()
             if ghost.available == True:
@@ -262,47 +317,34 @@ def update():
                     ghost.available = False
                     print(yosi.worldX + ghost.curDrawX, "위치의 유령과 충돌")
 
-    if(logo_time > 2):
-        logo_time = 0
-        if TTT == False:
-            TTT = True
-        elif TTT == True:
-            TTT = False
-        #game_framework.quit()
-        #game_framework.change_state(title_state)
-        if(Check == False):
-            image = load_image('title.png')
-            Check = True
-        elif Check == True and Check2 == False:
-            Check2 = True
-
-    delay(0.1)
-    logo_time += 0.1
+        for egg in eggList:
+            egg.update()
+            if egg.available == True:
+                if collide(yosi,egg) == True and yosi.curLife > 0:
+                    egg.available = False
+                    print(yosi.worldX + egg.curDrawX, "위치의 알을 먹음")
 
 def draw():
-    global image, Character, Check, frame, PauseImage, Pause
+    global Character, frame, PauseImage, Pause
     clear_canvas()
 
     if Pause == True and TTT == True:
         PauseImage.draw(400, 300)
 
-    if(Check2 == False):
-        image.draw(400, 300)
+    background.draw()
+    for flower in flowerList:
+        flower.draw(yosi.worldX)
+        draw_rectangle(*flower.get_bb())
+    for ghost in ghostList:
+        ghost.draw(yosi.worldX)
+        draw_rectangle(*ghost.get_bb())
+    for egg in eggList:
+        egg.draw(yosi.worldX)
+        draw_rectangle(*egg.get_bb())
 
-    elif Check2 == True:
-        background.draw()
-        for flower in flowerList:
-            flower.draw(yosi.worldX)
-            draw_rectangle(*flower.get_bb())
-        for ghost in ghostList:
-            ghost.draw(yosi.worldX)
-            draw_rectangle(*ghost.get_bb())
-        yosi.draw()
-        draw_rectangle(*yosi.get_bb())
-
+    yosi.draw()
+    draw_rectangle(*yosi.get_bb())
     update_canvas()
-
-
 
 def handle_events():
     global Pause
@@ -321,11 +363,11 @@ def handle_events():
             else:
                 yosi.handle_event(event)
 
+def pause():
+    pass
 
-def pause(): pass
-
-
-def resume(): pass
+def resume():
+    pass
 
 
 
