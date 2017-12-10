@@ -30,12 +30,15 @@ class Yosi:
 
         self.eat_sound = None
 
+
         if self.eat_sound == None:
-            self.eat_sound = load_wav('pickup.wav')
+            self.eat_sound = load_wav('Coin.wav')
             self.eat_sound.set_volume(32)
+
 
     def eat(self, egg):
         self.eat_sound.play()
+
 
     def prepare_image(self):
         self.yosi_image = load_image('run_animation_yosi.png')
@@ -96,7 +99,7 @@ class Background:
         self.bush2_image = None
         self.block_image = None
         self.left = 0
-        self.bgm = load_music('football.mp3')
+        self.bgm = load_music('Overworld.mp3')
         self.bgm.set_volume(64)
         self.bgm.repeat_play()
         ##############################################################
@@ -158,7 +161,7 @@ class Egg:
         self.image = None
         #######################################
         #       기본값     #
-        self.initY = 100
+        self.initY = 92
         #######################################
         self.initX = x
         self.curDrawX = self.initX
@@ -255,7 +258,7 @@ def enter():
         else:
             ghostList.append(Ghost(1500+i*450))
 
-        if random.random() > 0.1:
+        if random.random() > 0.3:
             eggList.append(Egg(3000+i*450))
 
 
@@ -309,6 +312,7 @@ def update():
                     flower.available = False
                     print(yosi.worldX + flower.curDrawX, "위치의 꽃과 충돌")
 
+
         for ghost in ghostList:
             ghost.update()
             if ghost.available == True:
@@ -316,6 +320,7 @@ def update():
                     yosi.curLife -= 1
                     ghost.available = False
                     print(yosi.worldX + ghost.curDrawX, "위치의 유령과 충돌")
+
 
         for egg in eggList:
             egg.update()
