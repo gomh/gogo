@@ -127,7 +127,7 @@ class Background:
         ground_x = int(self.left % self.ground_image.w)
         bush1_x = int((self.left * 3.5) % self.bush1_image.w)
         bush2_x =int((self.left * 3.0) % self.bush2_image.w)
-        sky_x = int((self.left * 1.5) % self.sky_image.w)
+        sky_x = int((self.left * 1.3) % self.sky_image.w)
         block_x = int((self.left * 2) % self.block_image.w)
 
         s_w = min(self.sky_image.w - sky_x, self.sky_w)
@@ -247,7 +247,7 @@ ghostList = []
 eggList = []
 
 def enter():
-    global PauseImage, flowerList, ghostList, eggList, yosi, background
+    global PauseImage, flowerList, ghostList, eggList, yosi, background, gameover
 
     yosi=Yosi()
     background = Background()
@@ -274,6 +274,8 @@ def enter():
 
     for egg in eggList:
         egg.prepare_image()
+
+    gameover = load_image('gameover.png')
 
 def exit():
     close_canvas()
@@ -329,12 +331,16 @@ def update():
                     egg.available = False
                     print(yosi.worldX + egg.curDrawX, "위치의 알을 먹음")
 
+
+
 def draw():
-    global Character, frame, PauseImage, Pause
+    global Character, frame, PauseImage, Pause, gameover, running
     clear_canvas()
 
     if Pause == True and TTT == True:
         PauseImage.draw(400, 300)
+
+
 
     background.draw()
     for flower in flowerList:
@@ -350,6 +356,10 @@ def draw():
     yosi.draw()
     draw_rectangle(*yosi.get_bb())
     update_canvas()
+
+    if yosi.curLife <= 0:
+        gameover.draw(400,300)
+
 
 def handle_events():
     global Pause
